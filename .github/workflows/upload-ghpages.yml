@@ -16,6 +16,9 @@ jobs:
     - name: Pull docker image
       run: docker pull smellman/tippecanoe:latest
 
+    - name: merge to tokyo.mbtiles
+      run: cat tokyo.mbtiles.a* > tokyo.mbtiles
+    
     - name: extract xzy from mbtiles
       run: docker run --rm -v $(pwd):/working -w /working smellman/tippecanoe:latest tile-join -e zxy tokyo.mbtiles --no-tile-compression --no-tile-size-limit
 
@@ -23,6 +26,7 @@ jobs:
       run: |
         rm -fr .git
         rm -fr tokyo.mbtiles
+        rm -fr tokyo.mbtiles.*
         git config --global user.name "Taro Matsuzawa"
         git config --global user.email "btm@tech.email.ne.jp"
         git init .
