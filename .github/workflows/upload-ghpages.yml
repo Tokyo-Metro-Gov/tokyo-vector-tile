@@ -1,0 +1,40 @@
+name: upload-ghpages
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Pull docker image
+      run: docker pull smellman/tippecanoe:latest
+
+    - name: merge to tokyo.mbtiles
+      run: cat tokyo.mbtiles.a* > tokyo.mbtiles
+    
+    - name: extract xzy from mbtiles
+      run: docker run --rm -v $(pwd):/working -w /working smellman/tippecanoe:latest tile-join -e zxy tokyo.mbtiles --no-tile-compression --no-tile-size-limit
+
+    - name: push to gh-pages
+      run: |
+        rm -fr .git
+        rm -fr tokyo.mbtiles
+        rm -fr tokyo.mbtiles.*
+        git config --global user.name "Taro Matsuzawa"
+        git config --global user.email "btm@tech.email.ne.jp"
+        git init .
+        touch .nojekyll
+        export BASE=$(echo $GITHUB_REPOSITORY | awk -F/ '{print $1}')
+        export REPO=$(echo $GITHUB_REPOSITORY | awk -F/ '{print $2}')
+        sed "s|zxy|https://$BASE.github.io/$REPO/zxy|g" -i tile.json
+        sed "s|./tile.json|https://$BASE.github.io/$REPO/tile.json|g" -i style.json
+        git add .
+        git commit --quiet -m "Deploy from Github Action"
+        git push --force https://$GITHUB_ACTOR:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY master:gh-pages > /dev/null 2>&1
